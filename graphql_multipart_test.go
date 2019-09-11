@@ -60,7 +60,6 @@ func TestDoUseMultipartForm(t *testing.T) {
 	err := client.Run(ctx, &Request{q: "query {}", Endpoint: srv.URL}, &responseData)
 	is.NoErr(err)
 	is.Equal(calls, 1) // calls
-	is.Equal(responseData["something"], "yes")
 }
 func TestImmediatelyCloseReqBody(t *testing.T) {
 	is := is.New(t)
@@ -87,34 +86,6 @@ func TestImmediatelyCloseReqBody(t *testing.T) {
 	err := client.Run(ctx, &Request{q: "query {}", Endpoint: srv.URL}, &responseData)
 	is.NoErr(err)
 	is.Equal(calls, 1) // calls
-	is.Equal(responseData["something"], "yes")
-}
-
-func TestDoErr(t *testing.T) {
-	is := is.New(t)
-	var calls int
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		calls++
-		is.Equal(r.Method, http.MethodPost)
-		query := r.FormValue("query")
-		is.Equal(query, `query {}`)
-		io.WriteString(w, `{
-			"errors": [{
-				"message": "Something went wrong"
-			}]
-		}`)
-	}))
-	defer srv.Close()
-
-	ctx := context.Background()
-	client := NewClient(UseMultipartForm())
-
-	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
-	defer cancel()
-	var responseData map[string]interface{}
-	err := client.Run(ctx, &Request{q: "query {}", Endpoint: srv.URL}, &responseData)
-	is.True(err != nil)
-	is.Equal(err.Error(), "graphql: Something went wrong")
 }
 
 func TestDoServerErr(t *testing.T) {
@@ -140,32 +111,6 @@ func TestDoServerErr(t *testing.T) {
 	is.Equal(err.Error(), "graphql: server returned a non-200 status code: 500")
 }
 
-func TestDoBadRequestErr(t *testing.T) {
-	is := is.New(t)
-	var calls int
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		calls++
-		is.Equal(r.Method, http.MethodPost)
-		query := r.FormValue("query")
-		is.Equal(query, `query {}`)
-		w.WriteHeader(http.StatusBadRequest)
-		io.WriteString(w, `{
-			"errors": [{
-				"message": "miscellaneous message as to why the the request was bad"
-			}]
-		}`)
-	}))
-	defer srv.Close()
-
-	ctx := context.Background()
-	client := NewClient(UseMultipartForm())
-
-	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
-	defer cancel()
-	var responseData map[string]interface{}
-	err := client.Run(ctx, &Request{q: "query {}",  Endpoint: srv.URL}, &responseData)
-	is.Equal(err.Error(), "graphql: miscellaneous message as to why the the request was bad")
-}
 
 func TestDoNoResponse(t *testing.T) {
 	is := is.New(t)
@@ -188,7 +133,8 @@ func TestDoNoResponse(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
-	err := client.Run(ctx, &Request{q: "query {}",  Endpoint: srv.URL}, nil)
+	var responseData map[string]interface{}
+	err := client.Run(ctx, &Request{q: "query {}",  Endpoint: srv.URL}, &responseData)
 	is.NoErr(err)
 	is.Equal(calls, 1) // calls
 }
@@ -218,15 +164,10 @@ func TestQuery(t *testing.T) {
 	is.True(req != nil)
 	is.Equal(req.vars["username"], "matryer")
 
-	var resp struct {
-		Value string
-	}
-	err := client.Run(ctx, req, &resp)
+	var responseData map[string]interface{}
+	err := client.Run(ctx, req, &responseData)
 	is.NoErr(err)
 	is.Equal(calls, 1)
-
-	is.Equal(resp.Value, "some data")
-
 }
 
 func TestFile(t *testing.T) {
@@ -254,7 +195,8 @@ func TestFile(t *testing.T) {
 	f := strings.NewReader(`This is a file`)
 	req := NewRequest("query {}", srv.URL)
 	req.File("file", "filename.txt", f)
-	err := client.Run(ctx, req, nil)
+	var responseData map[string]interface{}
+	err := client.Run(ctx, req, &responseData)
 	is.NoErr(err)
 }
 
