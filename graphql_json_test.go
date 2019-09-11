@@ -30,12 +30,12 @@ func TestDoJSON(t *testing.T) {
 	defer srv.Close()
 
 	ctx := context.Background()
-	client := NewClient(srv.URL)
+	client := NewClient()
 
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 	var responseData map[string]interface{}
-	err := client.Run(ctx, &Request{q: "query {}"}, &responseData)
+	err := client.Run(ctx, &Request{q: "query {}", Endpoint: srv.URL}, &responseData)
 	is.NoErr(err)
 	is.Equal(calls, 1) // calls
 	is.Equal(responseData["something"], "yes")
@@ -56,12 +56,12 @@ func TestDoJSONServerError(t *testing.T) {
 	defer srv.Close()
 
 	ctx := context.Background()
-	client := NewClient(srv.URL)
+	client := NewClient()
 
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 	var responseData map[string]interface{}
-	err := client.Run(ctx, &Request{q: "query {}"}, &responseData)
+	err := client.Run(ctx, &Request{q: "query {}", Endpoint: srv.URL}, &responseData)
 	is.Equal(calls, 1) // calls
 	is.Equal(err.Error(), "graphql: server returned a non-200 status code: 500")
 }
@@ -85,12 +85,12 @@ func TestDoJSONBadRequestErr(t *testing.T) {
 	defer srv.Close()
 
 	ctx := context.Background()
-	client := NewClient(srv.URL)
+	client := NewClient()
 
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 	var responseData map[string]interface{}
-	err := client.Run(ctx, &Request{q: "query {}"}, &responseData)
+	err := client.Run(ctx, &Request{q: "query {}", Endpoint: srv.URL}, &responseData)
 	is.Equal(calls, 1) // calls
 	is.Equal(err.Error(), "graphql: miscellaneous message as to why the the request was bad")
 }
@@ -111,9 +111,9 @@ func TestQueryJSON(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	client := NewClient(srv.URL)
+	client := NewClient()
 
-	req := NewRequest("query {}")
+	req := NewRequest("query {}", srv.URL)
 	req.Var("username", "matryer")
 
 	// check variables
@@ -145,9 +145,9 @@ func TestHeader(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	client := NewClient(srv.URL)
+	client := NewClient()
 
-	req := NewRequest("query {}")
+	req := NewRequest("query {}", srv.URL)
 	req.Header.Set("X-Custom-Header", "123")
 
 	var resp struct {

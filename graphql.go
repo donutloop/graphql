@@ -44,7 +44,6 @@ import (
 
 // Client is a client for interacting with a GraphQL API.
 type Client struct {
-	endpoint         string
 	httpClient       *http.Client
 	useMultipartForm bool
 
@@ -58,9 +57,8 @@ type Client struct {
 }
 
 // NewClient makes a new Client capable of making GraphQL requests.
-func NewClient(endpoint string, opts ...ClientOption) *Client {
+func NewClient(opts ...ClientOption) *Client {
 	c := &Client{
-		endpoint: endpoint,
 		Log:      func(string) {},
 	}
 	for _, optionFunc := range opts {
@@ -113,7 +111,7 @@ func (c *Client) runWithJSON(ctx context.Context, req *Request, resp interface{}
 	gr := &graphResponse{
 		Data: resp,
 	}
-	r, err := http.NewRequest(http.MethodPost, c.endpoint, &requestBody)
+	r, err := http.NewRequest(http.MethodPost, req.Endpoint, &requestBody)
 	if err != nil {
 		return err
 	}
@@ -184,7 +182,7 @@ func (c *Client) runWithPostFields(ctx context.Context, req *Request, resp inter
 	gr := &graphResponse{
 		Data: resp,
 	}
-	r, err := http.NewRequest(http.MethodPost, c.endpoint, &requestBody)
+	r, err := http.NewRequest(http.MethodPost, req.Endpoint, &requestBody)
 	if err != nil {
 		return err
 	}
@@ -264,6 +262,7 @@ type graphResponse struct {
 
 // Request is a GraphQL request.
 type Request struct {
+	Endpoint string
 	q     string
 	vars  map[string]interface{}
 	files []File
@@ -274,9 +273,10 @@ type Request struct {
 }
 
 // NewRequest makes a new Request with the specified string.
-func NewRequest(q string) *Request {
+func NewRequest(q string, endpoint string) *Request {
 	req := &Request{
 		q:      q,
+		Endpoint: endpoint,
 		Header: make(map[string][]string),
 	}
 	return req

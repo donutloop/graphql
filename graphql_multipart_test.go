@@ -27,9 +27,9 @@ func TestWithClient(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	client := NewClient("", WithHTTPClient(testClient), UseMultipartForm())
+	client := NewClient(WithHTTPClient(testClient), UseMultipartForm())
 
-	req := NewRequest(``)
+	req := NewRequest(``, "")
 	client.Run(ctx, req, nil)
 
 	is.Equal(calls, 1) // calls
@@ -52,12 +52,12 @@ func TestDoUseMultipartForm(t *testing.T) {
 	defer srv.Close()
 
 	ctx := context.Background()
-	client := NewClient(srv.URL, UseMultipartForm())
+	client := NewClient(UseMultipartForm())
 
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 	var responseData map[string]interface{}
-	err := client.Run(ctx, &Request{q: "query {}"}, &responseData)
+	err := client.Run(ctx, &Request{q: "query {}", Endpoint: srv.URL}, &responseData)
 	is.NoErr(err)
 	is.Equal(calls, 1) // calls
 	is.Equal(responseData["something"], "yes")
@@ -79,12 +79,12 @@ func TestImmediatelyCloseReqBody(t *testing.T) {
 	defer srv.Close()
 
 	ctx := context.Background()
-	client := NewClient(srv.URL, ImmediatelyCloseReqBody(), UseMultipartForm())
+	client := NewClient(ImmediatelyCloseReqBody(), UseMultipartForm())
 
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 	var responseData map[string]interface{}
-	err := client.Run(ctx, &Request{q: "query {}"}, &responseData)
+	err := client.Run(ctx, &Request{q: "query {}", Endpoint: srv.URL}, &responseData)
 	is.NoErr(err)
 	is.Equal(calls, 1) // calls
 	is.Equal(responseData["something"], "yes")
@@ -107,12 +107,12 @@ func TestDoErr(t *testing.T) {
 	defer srv.Close()
 
 	ctx := context.Background()
-	client := NewClient(srv.URL, UseMultipartForm())
+	client := NewClient(UseMultipartForm())
 
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 	var responseData map[string]interface{}
-	err := client.Run(ctx, &Request{q: "query {}"}, &responseData)
+	err := client.Run(ctx, &Request{q: "query {}", Endpoint: srv.URL}, &responseData)
 	is.True(err != nil)
 	is.Equal(err.Error(), "graphql: Something went wrong")
 }
@@ -131,12 +131,12 @@ func TestDoServerErr(t *testing.T) {
 	defer srv.Close()
 
 	ctx := context.Background()
-	client := NewClient(srv.URL, UseMultipartForm())
+	client := NewClient(UseMultipartForm())
 
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 	var responseData map[string]interface{}
-	err := client.Run(ctx, &Request{q: "query {}"}, &responseData)
+	err := client.Run(ctx, &Request{q: "query {}", Endpoint: srv.URL}, &responseData)
 	is.Equal(err.Error(), "graphql: server returned a non-200 status code: 500")
 }
 
@@ -158,12 +158,12 @@ func TestDoBadRequestErr(t *testing.T) {
 	defer srv.Close()
 
 	ctx := context.Background()
-	client := NewClient(srv.URL, UseMultipartForm())
+	client := NewClient(UseMultipartForm())
 
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 	var responseData map[string]interface{}
-	err := client.Run(ctx, &Request{q: "query {}"}, &responseData)
+	err := client.Run(ctx, &Request{q: "query {}",  Endpoint: srv.URL}, &responseData)
 	is.Equal(err.Error(), "graphql: miscellaneous message as to why the the request was bad")
 }
 
@@ -184,11 +184,11 @@ func TestDoNoResponse(t *testing.T) {
 	defer srv.Close()
 
 	ctx := context.Background()
-	client := NewClient(srv.URL, UseMultipartForm())
+	client := NewClient(UseMultipartForm())
 
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
-	err := client.Run(ctx, &Request{q: "query {}"}, nil)
+	err := client.Run(ctx, &Request{q: "query {}",  Endpoint: srv.URL}, nil)
 	is.NoErr(err)
 	is.Equal(calls, 1) // calls
 }
@@ -209,9 +209,9 @@ func TestQuery(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	client := NewClient(srv.URL, UseMultipartForm())
+	client := NewClient(UseMultipartForm())
 
-	req := NewRequest("query {}")
+	req := NewRequest("query {}", srv.URL)
 	req.Var("username", "matryer")
 
 	// check variables
@@ -250,9 +250,9 @@ func TestFile(t *testing.T) {
 	defer srv.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
-	client := NewClient(srv.URL, UseMultipartForm())
+	client := NewClient(UseMultipartForm())
 	f := strings.NewReader(`This is a file`)
-	req := NewRequest("query {}")
+	req := NewRequest("query {}", srv.URL)
 	req.File("file", "filename.txt", f)
 	err := client.Run(ctx, req, nil)
 	is.NoErr(err)
